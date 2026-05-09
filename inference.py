@@ -186,7 +186,7 @@ class GramNetDetector:
             self.config = json.load(f)
             
         # Load detector config
-        det_config_path = os.path.join(model_dir, "config_detector_k8_inter_v3.json")
+        det_config_path = os.path.join(model_dir, "config_detector_k8_retrained.json")
         with open(det_config_path, "r") as f:
             det_config = json.load(f)
             
@@ -196,23 +196,80 @@ class GramNetDetector:
         self.gram_extractor = VGGGramExtractorV3(
             layer_indices=self.config["vgg_layer_indices"],
             channels=self.config["vgg_channels"],
+            top_k=det_config.get("top_k_eigenvalues", 16),
         ).to(self.device)
         self.gram_extractor.eval()
 
         # Load normalization stats
-        stats_path = os.path.join(model_dir, "norm_stats_v3.pt")
+        stats_path = os.path.join(model_dir, "norm_stats_v3_retrained.pt")
         stats = torch.load(stats_path, map_location=self.device, weights_only=False)
         self.feat_mean = stats["feat_mean"].to(self.device)
         self.feat_std  = stats["feat_std"].to(self.device)
         self.threshold = stats.get("best_thresh", 0.5)
 
-        # Load XGBoost detection classifier
+        # Check for manual threshold override via threshold_config.json
+        # This allows tuning detection sensitivity without retraining
+        threshold_config_path = os.path.join(
+            os.path.dirname(model_dir), "threshold_config.json"
+        )
+        if os.path.exists(threshold_config_path):
+            try:
+                with open(threshold_config_path, "r") as f:
+                    thresh_cfg = json.load(f)
+                if thresh_cfg.get("threshold_mode") == "manual":
+                    manual_thresh = float(thresh_cfg["threshold"])
+                    print(f"[Tracera] Manual threshold override: {self.threshold} → {manual_thresh}")
+                    self.threshold = manual_thresh
+                # Ensemble weight: how much the new model contributes (0.0–1.0)
+                # e.g. 0.55 = new model 55%, old model 45%
+                self.ensemble_weight = float(thresh_cfg.get("ensemble_weight", 0.55))
+            except (json.JSONDecodeError, KeyError, ValueError) as e:
+                print(f"[Tracera] Warning: Could not read threshold_config.json: {e}")
+                self.ensemble_weight = 0.55
+        else:
+            self.ensemble_weight = 0.55
+
+        # Load XGBoost detection classifiers
         import xgboost as xgb
 
+        # Primary: new retrained K=8 detector
         self.classifier = xgb.XGBClassifier()
         self.classifier.load_model(
-            os.path.join(model_dir, "xgb_detector_k8_inter_v3.json")
+            os.path.join(model_dir, "xgb_detector_k8_retrained.json")
         )
+
+        # Ensemble: old K=16 detector as safety net
+        # Both models vote and their probabilities are averaged,
+        # preserving the retrained model's improvements while
+        # catching fakes the new model might be less confident on.
+        det_top_k = det_config.get("top_k_eigenvalues", 16)
+        old_det_path = os.path.join(model_dir, "xgb_detector_k8_inter_v3.json")
+        if det_top_k != 16 and os.path.exists(old_det_path):
+            self.old_classifier = xgb.XGBClassifier()
+            self.old_classifier.load_model(old_det_path)
+
+            # Load the old K=16 config for feature subsetting
+            old_det_config_path = os.path.join(model_dir, "config_detector_k8_inter_v3.json")
+            with open(old_det_config_path, "r") as f:
+                old_det_config = json.load(f)
+            self.old_feature_indices = old_det_config.get("feature_indices", None)
+
+            # K=16 extractor + old norm stats (shared with attribution)
+            self.old_extractor = VGGGramExtractorV3(
+                layer_indices=self.config["vgg_layer_indices"],
+                channels=self.config["vgg_channels"],
+                top_k=16,
+            ).to(self.device)
+            self.old_extractor.eval()
+            old_stats_path = os.path.join(model_dir, "norm_stats_v3.pt")
+            old_stats = torch.load(old_stats_path, map_location=self.device, weights_only=False)
+            self.old_feat_mean = old_stats["feat_mean"].to(self.device)
+            self.old_feat_std  = old_stats["feat_std"].to(self.device)
+            print(f"[Tracera] Ensemble mode: K=8 (retrained) + K=16 (original)")
+        else:
+            self.old_classifier = None
+            self.old_extractor = None
+            self.old_feature_indices = None
 
         # Load XGBoost attribution classifier
         attr_path = os.path.join(model_dir, "xgb_attribution_v3.json")
@@ -236,7 +293,7 @@ class GramNetDetector:
         ])
 
         print(f"[Tracera] Model loaded from {model_dir}")
-        print(f"[Tracera] Feature dim: {self.config.get('fdim', stats['fdim'])}")
+        print(f"[Tracera] Feature dim: {self.config.get('fdim', stats.get('fdim', 'unknown'))}")
         print(f"[Tracera] Detection threshold: {self.threshold}")
         print(f"[Tracera] Attribution model: {'loaded' if self.attr_classifier else 'not found'}")
         print(f"[Tracera] Device: {self.device}")
@@ -262,27 +319,44 @@ class GramNetDetector:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         img_tensor = self.transform(img).unsqueeze(0).to(self.device)
 
-        # Extract Gram matrix eigenvalue features
+        # ---- New model (K=8 retrained) ----
         features = self.gram_extractor.extract_gram_features(img_tensor)
-
-        # Z-score normalization
         features = (features - self.feat_mean.unsqueeze(0)) / (
             self.feat_std.unsqueeze(0) + 1e-8
         )
         features = torch.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
 
-        # Keep base features for attribution model (expects 2382)
-        base_feats_np = features.cpu().numpy()
-
-        # Subset features if required by ablation models (e.g. k=8)
         if self.feature_indices is not None:
             det_features = features[:, self.feature_indices]
         else:
             det_features = features
 
-        # XGBoost classification
-        det_feats_np = det_features.cpu().numpy()
-        fake_prob = float(self.classifier.predict_proba(det_feats_np)[0, 1])
+        new_prob = float(self.classifier.predict_proba(det_features.cpu().numpy())[0, 1])
+
+        # ---- Old model (K=16 original) for ensemble ----
+        if self.old_classifier is not None:
+            old_features = self.old_extractor.extract_gram_features(img_tensor)
+            old_features = (old_features - self.old_feat_mean.unsqueeze(0)) / (
+                self.old_feat_std.unsqueeze(0) + 1e-8
+            )
+            old_features = torch.nan_to_num(old_features, nan=0.0, posinf=0.0, neginf=0.0)
+
+            # Keep full K=16 features for attribution
+            old_feats_full_np = old_features.cpu().numpy()
+
+            if self.old_feature_indices is not None:
+                old_det_features = old_features[:, self.old_feature_indices]
+            else:
+                old_det_features = old_features
+
+            old_prob = float(self.old_classifier.predict_proba(old_det_features.cpu().numpy())[0, 1])
+
+            # Ensemble: weighted average of both model probabilities
+            w = self.ensemble_weight  # new model weight
+            fake_prob = w * new_prob + (1 - w) * old_prob
+        else:
+            fake_prob = new_prob
+            old_feats_full_np = None
 
         verdict = "Fake" if fake_prob > self.threshold else "Real"
 
@@ -290,15 +364,31 @@ class GramNetDetector:
         attribution = None
         attribution_confidence = None
         if verdict == "Fake" and self.attr_classifier is not None:
-            attr_prob = float(self.attr_classifier.predict_proba(base_feats_np)[0, 1])
+            # Use K=16 features for attribution (it was trained on 2382-dim)
+            if old_feats_full_np is not None:
+                attr_feats_np = old_feats_full_np
+            else:
+                attr_feats_np = features.cpu().numpy()
+
+            attr_prob = float(self.attr_classifier.predict_proba(attr_feats_np)[0, 1])
             attribution = "Diffusion" if attr_prob > 0.5 else "GAN"
             attribution_confidence = round(
                 attr_prob if attribution == "Diffusion" else (1 - attr_prob), 4
             )
 
+        # Calculate UX-friendly confidence scaled from 50% to 100%
+        if verdict == "Fake":
+            margin = max(0.0, fake_prob - self.threshold) / max(1e-5, 1.0 - self.threshold)
+        else:
+            margin = max(0.0, self.threshold - fake_prob) / max(1e-5, self.threshold)
+            
+        # Apply a square root to boost small margins so they don't look like coin flips
+        ux_confidence = 0.5 + 0.5 * (margin ** 0.5)
+
         return {
             "verdict": verdict,
-            "confidence": round(fake_prob, 4),
+            "confidence": round(ux_confidence, 4),
+            "fake_probability": round(fake_prob, 4),
             "attribution": attribution,
             "attribution_confidence": attribution_confidence,
         }
