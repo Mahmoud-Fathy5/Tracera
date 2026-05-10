@@ -1,3 +1,13 @@
+---
+title: Tracera
+emoji: 🔍
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
 # 🔍 Tracera — Advanced Deepfake Detection System
 
 ![Tracera Banner](logo.png)
@@ -21,6 +31,7 @@ Tracera is a high-performance deepfake detection ecosystem powered by **GramNet 
 ## 🛠️ Tech Stack
 
 ### Backend & ML
+
 - **Python 3.10+** — Core logic
 - **Flask** — REST API framework
 - **PyTorch (CPU)** — Deep learning inference
@@ -28,6 +39,7 @@ Tracera is a high-performance deepfake detection ecosystem powered by **GramNet 
 - **Pillow** — Image processing
 
 ### Frontend & Extension
+
 - **Vanilla JS/CSS** — Ultra-fast, glassmorphic UI
 - **Chrome Manifest V3** — Modern browser extension standard
 
@@ -51,6 +63,7 @@ Tracera is a high-performance deepfake detection ecosystem powered by **GramNet 
 ## ⚙️ Installation & Setup
 
 ### 1. Backend Setup
+
 Clone the repository and install dependencies:
 
 ```powershell
@@ -63,12 +76,15 @@ pip install -r requirements.txt
 ```
 
 Run the development server:
+
 ```powershell
 python app.py
 ```
+
 The API will be available at `http://localhost:5000`.
 
 ### 2. Browser Extension Setup
+
 1. Open Chrome/Edge and navigate to `chrome://extensions/`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked** and select the `tracera-extension` folder.
@@ -78,7 +94,7 @@ The API will be available at `http://localhost:5000`.
 
 ## 🔬 How it Works (GramNet v3)
 
-Tracera uses a specialized architecture that doesn't just look at pixels, but at the **statistical relationships** between feature maps. 
+Tracera uses a specialized architecture that doesn't just look at pixels, but at the **statistical relationships** between feature maps.
 
 1. **Feature Extraction**: Uses a pre-trained CNN to extract high-level features.
 2. **Gram Matrix Analysis**: Computes the correlation between features to capture texture and style.
@@ -89,5 +105,5 @@ Tracera uses a specialized architecture that doesn't just look at pixels, but at
 
 ## 📄 License
 
-© 2026 Tracera. All rights reserved. 
+© 2026 Tracera. All rights reserved.
 Designed for security researchers, journalists, and everyday users to verify digital truth.

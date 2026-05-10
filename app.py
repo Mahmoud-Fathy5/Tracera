@@ -47,6 +47,7 @@ MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model")
 # Application Factory
 # ---------------------------------------------------------------------------
 
+
 def create_app():
     app = Flask(
         __name__,
@@ -116,7 +117,7 @@ def create_app():
     def predict():
         """
         Analyze an uploaded image for deepfake detection.
-        
+
         Expects: multipart/form-data with field "image"
         Returns: JSON {verdict, confidence, attribution, attribution_confidence}
         """
@@ -132,15 +133,18 @@ def create_app():
         filename = secure_filename(file.filename)
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
         if ext not in ALLOWED_EXTENSIONS:
-            return jsonify({
-                "error": f"Invalid file type '.{ext}'. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "error": f"Invalid file type '.{ext}'. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+                    }
+                ),
+                400,
+            )
 
         # -- Validate MIME type --
         if file.content_type not in ALLOWED_MIMETYPES:
-            return jsonify({
-                "error": f"Invalid MIME type '{file.content_type}'."
-            }), 400
+            return jsonify({"error": f"Invalid MIME type '{file.content_type}'."}), 400
 
         # -- Read and validate magic bytes --
         file_bytes = file.read()
@@ -152,9 +156,10 @@ def create_app():
             return jsonify({"error": "File too large. Maximum size: 10 MB."}), 413
 
         if not GramNetDetector.validate_image_bytes(file_bytes):
-            return jsonify({
-                "error": "File content does not match a valid image format."
-            }), 400
+            return (
+                jsonify({"error": "File content does not match a valid image format."}),
+                400,
+            )
 
         # -- Run inference --
         try:
@@ -169,9 +174,14 @@ def create_app():
 
         except Exception as e:
             logger.error("Inference error: %s", str(e), exc_info=True)
-            return jsonify({
-                "error": "An error occurred during analysis. Please try a different image."
-            }), 500
+            return (
+                jsonify(
+                    {
+                        "error": "An error occurred during analysis. Please try a different image."
+                    }
+                ),
+                500,
+            )
 
     # -----------------------------------------------------------------
     # Error Handlers
@@ -183,9 +193,14 @@ def create_app():
 
     @app.errorhandler(429)
     def rate_limited(e):
-        return jsonify({
-            "error": "Rate limit exceeded. Please wait a moment before trying again."
-        }), 429
+        return (
+            jsonify(
+                {
+                    "error": "Rate limit exceeded. Please wait a moment before trying again."
+                }
+            ),
+            429,
+        )
 
     @app.errorhandler(404)
     def not_found(e):
@@ -206,4 +221,4 @@ if __name__ == "__main__":
     app = create_app()
     # Development server — do NOT use in production
     # For production, use: gunicorn "app:create_app()" --bind 0.0.0.0:5000
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=7860, debug=False)
