@@ -32,7 +32,6 @@ dist/
 
 # Local development artifacts not needed for deployment
 *.ipynb
-tracera-extension/
 tracera-extension.zip
 colors.jpg
 fat7y.png
