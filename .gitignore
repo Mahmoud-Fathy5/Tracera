@@ -29,3 +29,18 @@ Thumbs.db
 *.egg-info/
 build/
 dist/
+
+# Local development artifacts not needed for deployment
+*.ipynb
+tracera-extension/
+tracera-extension.zip
+colors.jpg
+fat7y.png
+logo.png
+robot.png
+smallMoMedhat.jpg
+compare_models.py
+retrain.py
+test_ensemble.py
+walkthrough.md
+azure_deployment_guide.md
