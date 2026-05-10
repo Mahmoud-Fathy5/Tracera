@@ -1,6 +1,3 @@
-{
-  "threshold": 0.50,
-  "threshold_mode": "auto",
-  "ensemble_weight": 0.55,
-  "notes": "threshold_mode: set to 'manual' to override the model's trained threshold. ensemble_weight: controls the balance between new (retrained K=8) and old (original K=16) models. Value is the new model's weight (0.0-1.0), old model gets the remainder. Example: 0.55 means 55% new + 45% old. Higher = trust new model more, Lower = trust old model more."
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:aef55d7508bf1efde565b40ef89d3c19920dfb49bf71b9dcf04be01261a67576
+size 439

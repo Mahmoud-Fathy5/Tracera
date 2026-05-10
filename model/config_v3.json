@@ -1,30 +1,3 @@
-{
-  "img_size": 224,
-  "fdim": 2382,
-  "vgg_layer_indices": [
-    8,
-    22,
-    29
-  ],
-  "vgg_channels": [
-    128,
-    512,
-    512
-  ],
-  "vgg_mean": [
-    0.485,
-    0.456,
-    0.406
-  ],
-  "vgg_std": [
-    0.229,
-    0.224,
-    0.225
-  ],
-  "best_val_acc": 0.86825,
-  "best_val_auc": 0.9368642500000002,
-  "best_thresh": 0.5000000000000002,
-  "n_stats": 4,
-  "classifier": "xgboost",
-  "pruned_layers": "relu1_2, relu3_3 removed"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:1e5ee59f89bb7fb963044470dd75a5427aac79e87f42a8d76ab6e73b2cd8e685
+size 437

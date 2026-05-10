@@ -1,5 +1,3 @@
-{
-    "threshold": 0.4953360855579376,
-    "threshold_mode": "auto",
-    "notes": "Set mode to 'manual' to override the optimal threshold"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:42928aef8523b3082c8bc4095afa63c841af173abbb0ccc641e7a585a169f969
+size 140
