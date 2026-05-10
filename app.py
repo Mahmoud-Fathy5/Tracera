@@ -59,7 +59,17 @@ def create_app():
     app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
     # CORS — restrict in production, allow all for development
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": [
+                    "https://YOUR_USERNAME-tracera.hf.space",
+                    "chrome-extension://*",  # for the browser extension
+                ]
+            }
+        },
+    )
 
     # Rate limiting
     limiter = Limiter(
