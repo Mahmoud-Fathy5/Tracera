@@ -1,13 +1,3 @@
----
-title: Tracera
-emoji: 🔍
-colorFrom: blue
-colorTo: purple
-sdk: docker
-pinned: false
-app_port: 7860
----
-
 # 🔍 Tracera — Advanced Deepfake Detection System
 
 ![Tracera Banner](logo.png)
@@ -88,7 +78,7 @@ The API will be available at `http://localhost:5000`.
 1. Open Chrome/Edge and navigate to `chrome://extensions/`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked** and select the `tracera-extension` folder.
-4. Click the extension icon in your toolbar, enter your API URL (e.g., `http://localhost:5000`), and click **Save**.
+4. Click the extension icon in your toolbar, enter your API URL (e.g., `http://localhost:7860`), and click **Save**.
 
 ---
 

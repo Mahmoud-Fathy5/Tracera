@@ -16,7 +16,7 @@
 //   "https://your-custom-domain.com"
 //   "http://localhost:5000"  (for local testing)
 //
-const API_BASE_URL = "https://ggt62xgb-5000.uks1.devtunnels.ms/";
+const API_BASE_URL = "https://ma7moud05-tracera.hf.space/";
 // =================================================================
 
 // ---------------------------------------------------------------
