@@ -4,6 +4,8 @@
 
 > **Forensic-grade image analysis to distinguish between human-captured and AI-generated imagery.**
 
+**[📄 Read the Research Paper](https://drive.google.com/file/d/18peiBMI3Rnl-GQCE2b7UPe-TRgHO-c9v/view?usp=drive_link) | [🖼️ View the Project Poster](https://drive.google.com/file/d/1EnHFrBNXQ1yfb_VueXKKngV_ij1M66Hy/view?usp=drive_link)**
+
 Tracera is a high-performance deepfake detection ecosystem powered by **GramNet v3**. It provides a seamless pipeline from state-of-the-art machine learning inference to real-world application via a web dashboard and a browser extension.
 
 ---
@@ -71,7 +73,7 @@ Run the development server:
 python app.py
 ```
 
-The API will be available at `http://localhost:5000`.
+The API will be available at `http://localhost:7860`.
 
 ### 2. Browser Extension Setup
 
