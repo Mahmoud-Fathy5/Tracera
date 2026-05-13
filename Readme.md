@@ -71,7 +71,7 @@ Run the development server:
 python app.py
 ```
 
-The API will be available at `http://localhost:5000`.
+The API will be available at `http://localhost:7860`.
 
 ### 2. Browser Extension Setup
 
