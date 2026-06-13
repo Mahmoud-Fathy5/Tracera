@@ -30,7 +30,7 @@
   function showLoading(imageUrl) {
     removeOverlay();
 
-    overlayEl = document.createElement("div");
+    overlayEl = document.createElement("dialog");
     overlayEl.id = "tracera-overlay";
     overlayEl.innerHTML = `
       <div class="tracera-panel">
@@ -58,11 +58,22 @@
 
     document.body.appendChild(overlayEl);
 
+    try {
+      overlayEl.showModal();
+    } catch (err) {
+      console.error("Failed to show Tracera overlay modal:", err);
+    }
+
     // Close button
     overlayEl.querySelector("#tracera-close").addEventListener("click", removeOverlay);
     // Click outside to close
     overlayEl.addEventListener("click", (e) => {
       if (e.target === overlayEl) removeOverlay();
+    });
+    // Esc key/cancel event
+    overlayEl.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      removeOverlay();
     });
 
     // Animate in
@@ -143,7 +154,7 @@
       `;
     }
 
-    overlayEl = document.createElement("div");
+    overlayEl = document.createElement("dialog");
     overlayEl.id = "tracera-overlay";
     overlayEl.innerHTML = `
       <div class="tracera-panel">
@@ -169,9 +180,19 @@
 
     document.body.appendChild(overlayEl);
 
+    try {
+      overlayEl.showModal();
+    } catch (err) {
+      console.error("Failed to show Tracera overlay modal:", err);
+    }
+
     overlayEl.querySelector("#tracera-close").addEventListener("click", removeOverlay);
     overlayEl.addEventListener("click", (e) => {
       if (e.target === overlayEl) removeOverlay();
+    });
+    overlayEl.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      removeOverlay();
     });
 
     requestAnimationFrame(() => {
@@ -188,8 +209,13 @@
       overlayEl = null;       // clear immediately so new overlays aren't affected
       el.classList.remove("tracera-overlay--visible");
       setTimeout(function () {
-        if (el && el.parentNode) {
-          el.parentNode.removeChild(el);
+        if (el) {
+          try {
+            el.close();
+          } catch (e) {}
+          if (el.parentNode) {
+            el.parentNode.removeChild(el);
+          }
         }
       }, 300);
     }
